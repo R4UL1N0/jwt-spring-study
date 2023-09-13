@@ -3,6 +3,11 @@ package com.raulino.jwtstudyspring.config;
 import java.io.IOException;
 
 import org.springframework.lang.NonNull;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -17,7 +22,8 @@ import lombok.RequiredArgsConstructor;
 @Component @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private JwtService jwtService;
+    private final JwtService jwtService;
+    private final UserDetailsService userDetailsService; 
 
     @Override
     protected void doFilterInternal(
@@ -30,8 +36,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
             return;
         }
-        String jwt = authHeader.substring(7);
-        String username = jwtService.gerUsernameFromJwt(jwt);
+        String jwtToken = authHeader.substring(7);
+        String username = jwtService.extractUsernameFromJwt(jwtToken);
+        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
+            if (jwtService.isTokenValid(jwtToken, userDetails)) {
+                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(authToken);
+            }
+        }
+        filterChain.doFilter(request, response);
     }
     
 }
