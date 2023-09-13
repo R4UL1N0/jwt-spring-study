@@ -1,5 +1,6 @@
 package com.raulino.jwtstudyspring.models;
 
+import com.raulino.jwtstudyspring.controllers.auth.RegisterRequest;
 import com.raulino.jwtstudyspring.models.enums.LocalRole;
 import com.raulino.jwtstudyspring.models.enums.Role;
 
@@ -18,6 +19,14 @@ import lombok.Data;
 @Entity @Data @Builder @AllArgsConstructor 
 @Table(name = "local_user")
 public class LocalUser {
+
+    public LocalUser(RegisterRequest data) {
+        this.firstName = data.getFirstName();
+        this.lastName = data.getLastName();
+        this.username = data.getUsername();
+        this.email = data.getEmail();
+        this.password = data.getPassword();
+    }
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
