@@ -2,7 +2,6 @@ package com.raulino.jwtstudyspring.models;
 
 import com.raulino.jwtstudyspring.controllers.auth.RegisterRequest;
 import com.raulino.jwtstudyspring.models.enums.LocalRole;
-import com.raulino.jwtstudyspring.models.enums.Role;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
