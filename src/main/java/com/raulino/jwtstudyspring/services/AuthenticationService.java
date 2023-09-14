@@ -1,7 +1,5 @@
 package com.raulino.jwtstudyspring.services;
 
-import java.util.Optional;
-
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -11,11 +9,8 @@ import com.raulino.jwtstudyspring.controllers.auth.AuthenticationRequest;
 import com.raulino.jwtstudyspring.controllers.auth.AuthenticationResponse;
 import com.raulino.jwtstudyspring.controllers.auth.RegisterRequest;
 import com.raulino.jwtstudyspring.models.LocalUser;
-import com.raulino.jwtstudyspring.models.TokenModel;
 import com.raulino.jwtstudyspring.models.enums.LocalRole;
-import com.raulino.jwtstudyspring.models.enums.TokenType;
 import com.raulino.jwtstudyspring.repositories.LocalUserRepository;
-import com.raulino.jwtstudyspring.repositories.TokenRepository;
 import com.raulino.jwtstudyspring.security.LocalUserDetails;
 
 import lombok.RequiredArgsConstructor;
@@ -24,10 +19,10 @@ import lombok.RequiredArgsConstructor;
 public class AuthenticationService {
 
     private final LocalUserRepository userRepository;
-    private final TokenRepository tokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authManager;
+    private final TokenService tokenService;
     
     public AuthenticationResponse register(RegisterRequest request) {
         LocalUser newUser = 
@@ -42,61 +37,34 @@ public class AuthenticationService {
 
         var savedUser = userRepository.save(newUser);
     
-        String token = jwtService.generateToken(new LocalUserDetails(savedUser));
-        persistJwtToken(savedUser, token);
+        String token = jwtService.generateEmptyAccessToken(new LocalUserDetails(savedUser));
+        String refreshToken = jwtService.generateRefreshToken(new LocalUserDetails(savedUser));
+        tokenService.persistToken(token, savedUser);
 
-        var response = AuthenticationResponse.builder().accessToken(token).refreshToken(null).build();
+        var response = AuthenticationResponse.builder().accessToken(token).refreshToken(refreshToken).build();
 
         return response;
     }
 
     public AuthenticationResponse authenticate(AuthenticationRequest request) throws Exception {
-        Optional<LocalUser> opUser = userRepository.findByUsername(request.getUsername()); 
+        
+        LocalUser user = userRepository.findByUsername(request.getUsername()).orElseThrow(); 
 
-        if (!opUser.isPresent()) {
-            throw new Exception("Username not found.");
-        }
 
         authManager.authenticate(
             new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
         );
 
-        revokeAllUserTokens(opUser.get());
-        String token = jwtService.generateToken(new LocalUserDetails(opUser.get()));
-        persistJwtToken(opUser.get(), token);
 
-        var response = AuthenticationResponse.builder().accessToken(token).refreshToken(null).build();
+        tokenService.revokeAllUserTokens(user);
+        tokenService.expireAllUserTokens(user);
+        String token = jwtService.generateEmptyAccessToken(new LocalUserDetails(user));
+        String refreshToken = jwtService.generateRefreshToken(new LocalUserDetails(user));
+        tokenService.persistToken(token, user);
+
+        var response = AuthenticationResponse.builder().accessToken(token).refreshToken(refreshToken).build();
 
         return response;
-    }
-
-    private void revokeAllUserTokens(LocalUser user) {
-        var userTokens = tokenRepository.findAllValidTokensByUser(user.getId());
-
-        if (userTokens.isEmpty()) {
-            return;
-        }
-
-        for (TokenModel token: userTokens) {
-            token.setExpired(true);
-            token.setRevoked(true);
-        }
-
-        tokenRepository.saveAll(userTokens);
-    }
-
-    private void persistJwtToken(LocalUser user, String token) {
-        
-        TokenModel tokenModel = 
-            TokenModel.builder()
-                .token(token)
-                .tokenType(TokenType.BEARER)
-                .expired(false)
-                .revoked(false)
-                .user(user).build();
-
-        tokenRepository.save(tokenModel);
-
     }
 
 }
