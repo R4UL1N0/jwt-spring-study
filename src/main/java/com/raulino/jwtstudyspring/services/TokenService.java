@@ -17,6 +17,16 @@ public class TokenService {
     private final TokenRepository tokenRepository;
 
 
+    public boolean isTokenValid(String token) {
+        TokenModel tokenModel = tokenRepository.findByToken(token).orElseThrow();
+
+        if (tokenModel.isExpired() || tokenModel.isRevoked()) {
+            return false;
+        }
+
+        return true;
+    }
+
     public void revokeAllUserTokens(LocalUser user) {
 
         List<TokenModel> userTokens = findAllValidTokenByUser(user.getId());
@@ -43,7 +53,7 @@ public class TokenService {
         return tokenRepository.findAllValidTokensByUserId(userId);
     }
 
-    public void persistToken(String token, LocalUser user) {
+    public void saveToken(String token, LocalUser user) {
         var builtToken =  buildTokenModel(token, user);
         tokenRepository.save(builtToken);
     }
