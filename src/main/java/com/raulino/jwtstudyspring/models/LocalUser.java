@@ -1,5 +1,7 @@
 package com.raulino.jwtstudyspring.models;
 
+import java.util.List;
+
 import com.raulino.jwtstudyspring.controllers.auth.RegisterRequest;
 import com.raulino.jwtstudyspring.models.enums.LocalRole;
 
@@ -10,6 +12,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -43,4 +46,6 @@ public class LocalUser {
     @Column(name = "role", nullable = false)
     @Enumerated(EnumType.STRING)
     private LocalRole role;
+    @OneToMany(mappedBy = "user")
+    private List<TokenModel> tokens;
 }
