@@ -45,7 +45,7 @@ public class AuthenticationService {
         String token = jwtService.generateToken(new LocalUserDetails(savedUser));
         persistJwtToken(savedUser, token);
 
-        var response = AuthenticationResponse.builder().token(token).build();
+        var response = AuthenticationResponse.builder().accessToken(token).refreshToken(null).build();
 
         return response;
     }
@@ -65,7 +65,7 @@ public class AuthenticationService {
         String token = jwtService.generateToken(new LocalUserDetails(opUser.get()));
         persistJwtToken(opUser.get(), token);
 
-        var response = AuthenticationResponse.builder().token(token).build();
+        var response = AuthenticationResponse.builder().accessToken(token).refreshToken(null).build();
 
         return response;
     }
