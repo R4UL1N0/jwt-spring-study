@@ -17,8 +17,9 @@ import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Entity @Data @Builder @AllArgsConstructor 
+@Entity @Data @Builder @AllArgsConstructor @NoArgsConstructor
 @Table(name = "local_user")
 public class LocalUser {
 

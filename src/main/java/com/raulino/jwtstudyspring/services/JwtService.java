@@ -3,19 +3,26 @@ import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+
+import com.raulino.jwtstudyspring.models.TokenModel;
+import com.raulino.jwtstudyspring.repositories.TokenRepository;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import lombok.RequiredArgsConstructor;
 
-@Service
+@Service @RequiredArgsConstructor
 public class JwtService {
+
+    private final TokenRepository tokenRepository;
 
     private static final String SECRET_KEY = "ZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZA==";
 
@@ -33,11 +40,21 @@ public class JwtService {
             .signWith(getSignInKey(), SignatureAlgorithm.HS256)
             .compact();
     }
+    
 
     public Boolean isTokenValid(String token, UserDetails userDetails) {
-        String username = extractUsernameFromJwt(token);
+    
+        Optional<TokenModel> opToken = tokenRepository.findByToken(token);
 
-        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+        if (opToken.isPresent()) {
+            var realToken = opToken.get();
+            if (!realToken.isExpired() || !realToken.isRevoked()) {
+                String username = extractUsernameFromJwt(token);
+                return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+            }
+        }
+
+        return false;
     }
     
     public String extractUsernameFromJwt(String token) {
